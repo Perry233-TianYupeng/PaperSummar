@@ -1,0 +1,52 @@
+# ============================================================
+# PaperSummar - .gitignore
+# 排除所有「运行时不需要」的内容：本地数据、构建产物、缓存、
+# 虚拟环境、密钥、编辑器/系统文件。
+#
+# 注意：测试文件（backend/tests/）、CI 工作流（.github/）、
+# 文档（docs/）是开源项目的组成部分，刻意【不】忽略。
+# ============================================================
+
+# ---------- 运行时本地数据（含 API Key，绝不上传） ----------
+data/
+
+# ---------- 虚拟环境 / Python 缓存 ----------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+
+# ---------- 打包 / 日志 ----------
+dist/
+release/
+*.log
+
+# ---------- 前端 / Node ----------
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+.npmrc
+
+# ---------- 密钥与本地配置 ----------
+.env
+.env.*
+!.env.example
+
+# ---------- 编辑器 / 操作系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,44 @@
+/* 黑白双主题：CSS 变量 + data-theme。
+   文字与背景高对比度，正文 ≥16px、字段 ≥15px、标题 ≥19px（避免文字过小）。 */
+
+:root {
+  --bg: #f6f7f9;
+  --bg-soft: #eceef1;
+  --fg: #1b1f24;
+  --fg-muted: #52565c;
+  --card: #ffffff;
+  --card-soft: #fafbfc;
+  --border: #d9dde3;
+  --border-strong: #b9bfc7;
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --on-accent: #ffffff;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --success: #16a34a;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-soft: 0 1px 3px rgba(16, 24, 40, 0.08);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #111214;
+  --bg-soft: #1a1c20;
+  --fg: #ececec;
+  --fg-muted: #a8adb5;
+  --card: #1d1f24;
+  --card-soft: #23262c;
+  --border: #33373e;
+  --border-strong: #4a4f58;
+  --accent: #6aa9ff;
+  --accent-strong: #4d93f2;
+  --accent-soft: #1f3350;
+  --on-accent: #0b1220;
+  --danger: #ff6b6b;
+  --danger-soft: #3a2226;
+  --success: #4ade80;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}

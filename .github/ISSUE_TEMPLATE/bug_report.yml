@@ -1,0 +1,50 @@
+name: 🐛 Bug 报告
+description: 提交一个 Bug 反馈
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量提供完整信息，帮助我们快速定位问题。
+  - type: input
+    id: env-os
+    attributes:
+      label: 操作系统
+      description: 例如 Windows 11 / macOS 14 / Ubuntu 22.04
+    validations:
+      required: true
+  - type: input
+    id: env-python
+    attributes:
+      label: Python 版本
+      placeholder: 3.12
+  - type: input
+    id: env-node
+    attributes:
+      label: Node 版本（如用源码运行）
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 请描述一步步如何触发该问题
+      placeholder: |
+        1. 打开页面
+        2. 点击「新建资料卡」
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为 / 报错信息
+      description: 如有报错，请粘贴 data/logs/app.log 或 tasks.log 中的相关片段
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息
+      description: 截图、日志文件等

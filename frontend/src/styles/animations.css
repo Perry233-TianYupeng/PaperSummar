@@ -1,0 +1,61 @@
+/* 卡片飞入 / 飞出动画（不过度复杂） */
+
+@keyframes cardFlyIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes cardFlyOut {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.985);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-view {
+  animation: cardFlyIn 250ms ease-out both;
+}
+.card-view.leaving {
+  animation: cardFlyOut 200ms ease-in both;
+}
+
+.modal-overlay {
+  animation: fadeIn 180ms ease-out both;
+}
+.modal {
+  animation: slideDown 220ms ease-out both;
+}
+
+.nav-item {
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
