@@ -2,7 +2,7 @@
 
 # 📄 PaperSummar
 
-**本地论文资料管理软件** — 以网页 GUI 管理论文资料卡，AI 联网补全、AI 总结、Markdown 导出，构建属于你的 **AI 学术记忆库**。
+**本地论文资料管理软件** — 以网页 GUI 管理论文资料卡，AI 联网信息补全、AI 总结、Markdown 导出，构建属于你的 **AI 学术记忆库**。
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688)
@@ -24,10 +24,8 @@
 - 🧩 **丰富字段**：论文题目、Arxiv ID、作者团队信息、研究方向、论文内容、创新点、代码仓库链接、首发时间、最终期刊/会议、个人感想、AI 总结
 - 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + DuckDuckGo），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**
 - ✍️ **AI 总结**：一键生成论文总结，写入「AI 总结」字段并随卡片保存
-- 📝 **Markdown 导出**：严格按卡片内容生成 `.md` 文件，首行标注 `# 卡片ID`，方便多卡片 md 融合，直接作为 AI 学术记忆库
-- 🔍 **多模式搜索**：按 题目 / 作者 / 内容 检索，结果实时显示在导航栏
-- 🎨 **黑白双主题**：高对比度、字号适中，支持浅色 / 深色一键切换
-- 📋 **任务进度条**：AI 操作以任务条形式显示进度；失败时展示错误信息并写入日志
+- 📝 **Markdown 导出**：严格按卡片内容生成 `.md` 文件，首行标注 `# 卡片ID`，方便多卡片 md 融合，配合其他skill工具直接作为 AI 学术记忆库
+- 🔍 **高效检索**：按 题目 / 作者 / 内容 检索，结果实时显示在导航栏
 - 💾 **本地存储**：所有数据保存在本地（默认 `data/` 目录），保存路径可在设置中修改，不上传任何云端
 
 ## 🛠 技术栈
@@ -45,6 +43,8 @@
 ### 方式一：一键启动（推荐）
 
 确保已安装 [Python 3.11+](https://www.python.org/downloads/) 与 [Node.js 20+](https://nodejs.org/)（首次运行需要 Node 构建前端，之后无需）。
+
+### Terminal输入或双击对应文件启动：
 
 ```bash
 # Windows（cmd）
@@ -71,18 +71,6 @@ powershell -ExecutionPolicy Bypass -File start.ps1
 4. 常见 conda 安装路径
 
 > ⚠️ **常见问题**：Windows 上很多机器 PATH 里的 `python` 其实是 Microsoft Store 的占位程序（`WindowsApps\python.exe`），运行时会报「系统找不到指定的路径」。遇到此报错时，安装 [python.org](https://www.python.org/downloads/) 的官方 Python 并勾选 *Add to PATH*，或设置环境变量 `PAPERSUMMAR_PYTHON` 指向真实 `python.exe` 后重新运行。
-
-### 启动流程说明
-
-`start.bat` / `start.ps1` / `start.sh` 只负责**探测可用的 Python**，实际的安装与启动逻辑统一在 `scripts/launch.py`（三个平台共用一份，行为一致）：
-
-1. 探测 Python（见上）→ 调用 `scripts/launch.py`
-2. 创建虚拟环境 `.venv`（已存在则跳过）
-3. 安装后端依赖（已安装过会跳过，由 `.venv/.papersummar_ready` 标记控制）
-4. 若缺少 `frontend/dist`，用 npm 构建前端
-5. 打开浏览器并启动服务 `http://127.0.0.1:8000`
-
-> 把安装与启动逻辑放在 Python 中，是为了避开各平台 shell（尤其 Windows cmd）的解析陷阱，并保证跨平台一致性与可维护性。技术熟练的用户也可以直接运行 `python scripts/launch.py` 获得同样效果。
 
 ### 方式二：手动安装
 
@@ -129,16 +117,9 @@ AI 补全采用**服务端严格合并**：AI 生成的任何内容只有在对�
 仅支持 OpenAI 格式，兼容官方及各类中转 / 代理服务：
 
 - **Base URL**：如 `https://api.openai.com/v1`，或中转地址
-- **API Key**：官方或中转提供的 key（注意**完整复制**，如 DeepSeek 的 key 以 `sk-` 开头、约 35 字符）
-- **模型**：任意可用模型名（如 `gpt-4o-mini`、`deepseek-chat` 等）
-
-> 💡 使用 DeepSeek 官方 API 时，模型名通常是 `deepseek-chat` 或 `deepseek-reasoner`；若用中转服务，以该服务文档为准。
+- **API Key**：官方或中转提供的 key
 
 #### 常见报错与排查
-
-- **401 / API Key 无效**：服务端拒绝认证。确认 key 完整复制、Base URL 与 key 来自同一服务商，并到「个人设置」重新保存。
-- **429 / 限流**：请求频率过高或账户余额不足，稍后重试。
-- 以上错误会以**友好中文提示**显示在右下角任务条中，并记录到 `data/logs/tasks.log`（详见 FAQ）。
 
 ## ❓ 常见问题（FAQ）
 
@@ -180,13 +161,6 @@ data/                      # ★ 本地数据（不会提交到 Git）
 - **相对路径（推荐）**：剪切 / 移动整个项目文件夹后，数据自动跟随到新位置，不会丢失。
 - 若填写项目**内部的绝对路径**，保存时会自动转换为相对路径存储。
 - 项目**外部**的绝对路径（如 `D:\mydata`）保持不变，数据存储于该固定位置。
-
-## 🔒 安全与隐私
-
-- 所有数据（含 API Key）**仅存储在本地**，服务只绑定 `127.0.0.1`，不对外网开放。
-- 前端只展示掩码后的 API Key（如 `sk-****abcd`），需重新输入才会更新。
-- 卡片文本一律以文本节点渲染，不执行任何注入内容。
-- 请自行评估中转服务的可靠性；泄露风险自负。
 
 ## 🤝 贡献
 
