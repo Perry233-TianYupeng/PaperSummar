@@ -96,6 +96,7 @@ body {
 }
 
 .nav-item {
+  position: relative; /* 让「…」删除菜单相对卡片项定位 */
   display: flex;
   align-items: center;
   gap: 4px;
@@ -147,22 +148,20 @@ body {
 
 .nav-item-menu {
   position: absolute;
+  top: 100%; /* 在对应卡片项下方弹出 */
   right: 8px;
+  margin-top: 6px;
   z-index: 50;
 }
 
 /* ---------- 两段式确认菜单 ---------- */
 .confirm-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
   width: 220px;
   padding: 12px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow);
-  z-index: 60;
 }
 .confirm-menu-title {
   font-size: 14px;

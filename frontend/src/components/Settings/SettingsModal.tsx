@@ -14,6 +14,7 @@ export function SettingsModal() {
 
   const [form, setForm] = useState<Settings | null>(null)
   const [keyInput, setKeyInput] = useState('') // 重新输入才更新 key
+  const [searchKeyInput, setSearchKeyInput] = useState('') // 重新输入才更新搜索 key
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -40,8 +41,10 @@ export function SettingsModal() {
     try {
       const payload: Settings = { ...(form as Settings) }
       if (keyInput.trim()) payload.api_key = keyInput.trim() // 有输入才更新 key
+      if (searchKeyInput.trim()) payload.search_api_key = searchKeyInput.trim() // 有输入才更新
       await saveSettings(payload)
       setKeyInput('')
+      setSearchKeyInput('')
       setMsg('设置已保存')
     } catch (e) {
       setErr((e as Error).message)
@@ -101,6 +104,23 @@ export function SettingsModal() {
               onChange={(e) => update('model', e.target.value)}
               placeholder="gpt-4o-mini"
             />
+          </label>
+
+          <label className="form-label">
+            Tavily API Key（可选，AI 联网补全用）
+            <input
+              className="form-input"
+              type="password"
+              value={searchKeyInput}
+              placeholder={form.search_api_key ? `已配置：${form.search_api_key}` : 'tvly-...（留空则不使用）'}
+              onChange={(e) => setSearchKeyInput(e.target.value)}
+              autoComplete="off"
+            />
+            <span className="form-hint">
+              联网搜索自动优先级：① 填了 Tavily key 优先用 Tavily（免费额度约 1000 次/月）；②
+              否则若 LLM 服务是 DeepSeek，自动启用 DeepSeek 内置联网搜索（消耗 DeepSeek
+              token 余额）；③ 都没有则用 DuckDuckGo（免费）。
+            </span>
           </label>
 
           <label className="form-label">

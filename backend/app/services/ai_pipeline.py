@@ -14,7 +14,12 @@ from ..models import AI_MERGEABLE_FIELDS, Card, Settings, now_iso
 from ..utils.logging_setup import get_logger
 from .arxiv import ArxivClient, extract_repo_urls
 from .llm import LLMClient
-from .websearch import DuckDuckGoSearcher, snippets_to_text
+from .websearch import (
+    DeepSeekWebSearcher,
+    TavilySearcher,
+    create_searcher,
+    snippets_to_text,
+)
 
 _logger = get_logger()
 
@@ -73,13 +78,19 @@ def run_completion(
         client.close()
     progress(0.35, "arxiv", "arXiv 元数据获取完成")
 
-    # ---- [2] DuckDuckGo 兜底 ----
-    progress(0.4, "web", "DuckDuckGo 网页搜索 ...")
-    searcher = DuckDuckGoSearcher()
+    # ---- [2] 网页搜索（Tavily 或 DuckDuckGo 兜底） ----
+    searcher = create_searcher(settings)
+    if isinstance(searcher, TavilySearcher):
+        provider = "Tavily"
+    elif isinstance(searcher, DeepSeekWebSearcher):
+        provider = "DeepSeek"
+    else:
+        provider = "DuckDuckGo"
+    progress(0.4, "web", f"{provider} 网页搜索 ...")
     query_parts = [card.title]
     if card.arxiv_id.strip():
         query_parts.append(card.arxiv_id)
-    query_parts.append("论文 期刊 会议 发表")
+    query_parts.append("paper journal conference published year")
     web_text = snippets_to_text(searcher.search(" ".join(query_parts)))
     progress(0.6, "web", "网页证据收集完成")
 

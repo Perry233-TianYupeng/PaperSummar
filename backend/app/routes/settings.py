@@ -37,9 +37,11 @@ def update_settings(body: Settings) -> dict[str, str]:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # api_key 支持“留空表示不修改”：前端传掩码时此处应传空以保留原 key
+    # api_key / search_api_key 支持“留空表示不修改”：前端传掩码时此处应传空以保留原 key
     if not body.api_key.strip():
         body.api_key = current.api_key
+    if not body.search_api_key.strip():
+        body.search_api_key = current.search_api_key
 
     manager.save(body)
     return manager.to_public(body)

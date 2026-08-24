@@ -19,6 +19,8 @@ class TaskManager:
     """单机任务管理器。
 
     submit() 建任务并入队，起 daemon 线程执行 fn；fn 内通过 progress_cb 更新进度。
+    所有任务通过 _exec_lock **串行执行**（一次一个）：个人工具一次处理一张卡，
+    串行可避免并发调用不同搜索 C 库（httpx / ddgs）导致的进程段错误。
     内存保留最近 MAX_HISTORY 条记录供查询。失败信息写 tasks.log。
     """
 
@@ -27,6 +29,7 @@ class TaskManager:
     def __init__(self, logs_dir: Path | Callable[[], Path]) -> None:
         self._tasks: OrderedDict[str, Task] = OrderedDict()
         self._lock = threading.RLock()
+        self._exec_lock = threading.Lock()  # 串行化任务执行
         self._logs_dir = logs_dir  # Path 或返回 Path 的可调用对象
         self._logger = get_logger()
 
@@ -52,8 +55,11 @@ class TaskManager:
 
         def run() -> None:
             task.status = TaskStatus.RUNNING
+            task.message = "等待前一个任务完成"  # 串行队列中排队
             try:
-                result = fn(progress_cb)
+                with self._exec_lock:  # 一次只执行一个任务，避免并发搜索库冲突
+                    task.message = ""
+                    result = fn(progress_cb)
                 task.result = result or {}
                 task.status = TaskStatus.SUCCEEDED
                 task.update(progress=1.0, stage="done")

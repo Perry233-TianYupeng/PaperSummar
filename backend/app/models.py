@@ -79,7 +79,7 @@ class CardSummary(BaseModel):
 
 
 class Settings(BaseModel):
-    """个人设置（本地 config.json）。api_key 明文仅在本地存储。"""
+    """个人设置（本地 config.json）。api_key / search_api_key 明文仅在本地存储。"""
 
     model_config = ConfigDict(extra="ignore")
 
@@ -89,13 +89,14 @@ class Settings(BaseModel):
     model: str = "gpt-4o-mini"
     theme: Literal["light", "dark"] = "light"
     data_dir: str = ""
+    search_api_key: str = ""  # Tavily 搜索 key（可选）；填了则 AI 补全优先用 Tavily
 
     def has_api_key(self) -> bool:
         return bool(self.api_key and self.api_key.strip())
 
 
 class SettingsPublic(BaseModel):
-    """返回给前端的设置：api_key 做掩码。"""
+    """返回给前端的设置：api_key 与 search_api_key 做掩码。"""
 
     owner_name: str
     api_key: str
@@ -103,6 +104,7 @@ class SettingsPublic(BaseModel):
     model: str
     theme: str
     data_dir: str
+    search_api_key: str
 
 
 class TaskStatus(str, Enum):

@@ -22,7 +22,7 @@
 
 - 📇 **论文资料卡管理**：新建 / 打开 / 编辑 / 保存 / 删除，每篇论文一张卡片
 - 🧩 **丰富字段**：论文题目、Arxiv ID、作者团队信息、研究方向、论文内容、创新点、代码仓库链接、首发时间、最终期刊/会议、个人感想、AI 总结
-- 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + DuckDuckGo），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**
+- 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + **Tavily**，DuckDuckGo 免费兜底），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**
 - ✍️ **AI 总结**：一键生成论文总结，写入「AI 总结」字段并随卡片保存
 - 📝 **Markdown 导出**：严格按卡片内容生成 `.md` 文件，首行标注 `# 卡片ID`，方便多卡片 md 融合，配合其他skill工具直接作为 AI 学术记忆库
 - 🔍 **高效检索**：按 题目 / 作者 / 内容 检索，结果实时显示在导航栏
@@ -34,7 +34,7 @@
 |---|---|
 | 前端 | React 19 · Vite 6 · TypeScript · Zustand 5 |
 | 后端 | Python 3.11+ · FastAPI · Uvicorn |
-| 联网搜索 | arXiv API（免费免 Key）· DuckDuckGo（`ddgs`）兜底 |
+| 联网搜索 | arXiv API（免费）· Tavily（可选，高质量）· DeepSeek 内置搜索 · DuckDuckGo（免费兜底） |
 | AI 接口 | OpenAI 兼容格式，支持自定义 `base_url` / `api_key` / `model` |
 | 存储 | 本地 JSON 文件（每卡一个）+ Markdown 导出 |
 
@@ -106,7 +106,15 @@ python scripts/dev.py
    - **AI 信息补全**：联网搜索并补全未填字段（已填内容绝不被覆盖）
    - **AI 总结**：生成总结写入「AI 总结」字段
    - **AI 生成 md 文件**：按卡片内容导出 Markdown
-4. 左下角 **个人设置** 中配置：个人名称、API Key（OpenAI 格式）、Base URL、模型、数据保存路径、主题。
+4. 左下角 **个人设置** 中配置：个人名称、API Key（OpenAI 格式）、Base URL、模型、**Tavily API Key（可选）**、数据保存路径、主题。
+
+### 联网搜索自动优先级
+
+AI 信息补全的网页搜索按以下优先级自动选择（无需手动指定）：
+
+1. **Tavily**：填了 Tavily API Key 优先使用（高质量，免费额度约 1000 次/月）
+2. **DeepSeek 内置联网搜索**：未配 Tavily，但 LLM 服务是 DeepSeek 时，自动启用 DeepSeek 的联网搜索（复用你的 DeepSeek Key，按 token 计费）
+3. **DuckDuckGo**：以上都没有时兜底（完全免费）
 
 ### AI 补全「绝不覆盖已填内容」的保证
 
@@ -130,7 +138,10 @@ A：PATH 里的 `python` 是 Microsoft Store 的占位程序。安装官方 Pyth
 A：按「支持的 AI 接口」一节核对：key 是否**完整复制**、Base URL 与 key 是否来自同一服务商、模型名是否在该服务有效。
 
 **Q：arXiv 联网搜索很慢或未命中？**
-A：arXiv API 在部分网络环境下访问受限（超时）。程序会自动降级为 DuckDuckGo 搜索 + LLM 推理来补全，不影响其余字段。
+A：arXiv API 在部分网络环境下访问受限（超时）。程序会自动降级为网页搜索（Tavily 或 DuckDuckGo）+ LLM 推理来补全，不影响其余字段。
+
+**Q：补全效果差，只有作者名等少量信息？**
+A：DuckDuckGo 免费但信息量有限。在「个人设置」填 **Tavily API Key**（[tavily.com](https://tavily.com) 申请，有免费额度）即可优先走 Tavily，其返回网页正文摘要；若你用的是 DeepSeek API，未配 Tavily 时会自动启用 DeepSeek 内置联网搜索。两者都能显著提升「期刊/会议、内容、创新点」等字段的补全质量。
 
 **Q：在哪里查看详细报错？**
 A：任务失败会在右下角任务条展开错误信息，同时写入 `data/logs/tasks.log` 与 `data/logs/app.log`。

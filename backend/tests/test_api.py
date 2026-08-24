@@ -10,10 +10,24 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
 from app.main import create_app  # noqa: E402
+from app.models import Task, TaskStatus  # noqa: E402
+from app.tasks import TaskManager  # noqa: E402
 
 
 @pytest.fixture
-def client(tmp_path: Path):
+def client(tmp_path: Path, monkeypatch):
+    # 用同步假 submit 替代真实后台线程，避免测试退出时残留线程
+    # （真实网络任务会拖慢/干扰 pytest 清理，且 401 等错误写入已关闭的 stdout）。
+    def fake_submit(self, kind: str, card_id: str, fn) -> Task:
+        return Task(
+            task_id="task_test",
+            kind=kind,
+            card_id=card_id,
+            status=TaskStatus.SUCCEEDED,
+            created_at="2026-08-24T00:00:00+08:00",
+        )
+
+    monkeypatch.setattr(TaskManager, "submit", fake_submit)
     app = create_app(app_root=tmp_path)
     with TestClient(app) as c:
         yield c

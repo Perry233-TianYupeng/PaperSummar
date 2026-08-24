@@ -1,5 +1,5 @@
 /** 主区资料卡：可滚动编辑全部字段、关闭按钮、右下操作栏、飞入/飞出动画。 */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Card } from '../../api/types'
 import { useCardsStore } from '../../store/cardsStore'
 import { CardField } from './CardField'
@@ -20,10 +20,19 @@ export function CardView() {
 function CardViewInner({ card, onClose }: { card: Card; onClose: () => void }) {
   const [draft, setDraft] = useState<Card>(() => ({ ...card }))
   const [leaving, setLeaving] = useState(false)
+  const [dirty, setDirty] = useState(false) // 是否有未保存修改
   const save = useCardsStore((s) => s.save)
   const setError = useCardsStore((s) => s.setError)
 
+  // AI 补全 / 总结完成后，后端卡片被刷新（store.current 变化）；
+  // 若无未保存修改，则同步到草稿，让 AI 填充 / 总结的结果立即显示；
+  // 若用户正在编辑（dirty），保留草稿不被覆盖。
+  useEffect(() => {
+    if (!dirty) setDraft({ ...card })
+  }, [card, dirty])
+
   function setField(name: keyof Card, value: string) {
+    setDirty(true)
     setDraft((d) => ({ ...d, [name]: value }))
   }
 
@@ -37,6 +46,7 @@ function CardViewInner({ card, onClose }: { card: Card; onClose: () => void }) {
   async function handleSave() {
     try {
       await save(draft)
+      setDirty(false)
     } catch (e) {
       setError((e as Error).message)
     }
