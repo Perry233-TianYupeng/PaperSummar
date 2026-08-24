@@ -108,7 +108,7 @@ def run_completion(
     card: Card, settings: Settings, data_dir: Path, progress: Progress
 ) -> dict[str, Any]:
     """执行一次 AI 信息补全（不会触碰 personal_notes 与已填字段）。"""
-    # ---- [1] arXiv 查询 ----
+    # ---- [1] arXiv 查询（失败/超时仅降级，不中断补全） ----
     progress(0.1, "arxiv", "正在查询 arXiv ...")
     arxiv = None
     client = ArxivClient()
@@ -117,10 +117,13 @@ def run_completion(
             arxiv = client.query_by_id(card.arxiv_id)
         if arxiv is None:
             arxiv = client.query_by_title(card.title)
-        if arxiv is None:
-            _logger.info("arXiv 未命中，继续走网页搜索与 LLM")
+    except Exception as exc:  # noqa: BLE001 - arXiv 网络不可达/超时等，降级继续
+        _logger.warning("arXiv 查询异常（降级继续）：%s", exc)
+        arxiv = None
     finally:
         client.close()
+    if arxiv is None:
+        _logger.info("arXiv 无结果，继续走网页搜索与 LLM")
     progress(0.35, "arxiv", "arXiv 元数据获取完成")
 
     # ---- [2] 网页搜索（Tavily 或 DuckDuckGo 兜底） ----

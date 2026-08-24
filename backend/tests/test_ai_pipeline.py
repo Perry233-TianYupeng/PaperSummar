@@ -244,3 +244,62 @@ class TestRunCompletionIntegration:
         assert "author_team_info" in result["filled"]
         assert "research_directions" in result["filled"]
         assert "innovations" in result["filled"]
+
+    def test_arxiv_timeout_degrades_not_fails(self, tmp_path, monkeypatch) -> None:
+        """arXiv 网络不可达/超时只应降级，不应让整个补全任务失败。"""
+        import app.store as store_mod
+        from app.services import ai_pipeline
+        from app.services.websearch import SearchResult
+
+        class BrokenArxivClient:
+            def __init__(self, *a, **kw):
+                pass
+
+            def query_by_id(self, _id):
+                raise RuntimeError("arXiv 网络请求失败：The read operation timed out")
+
+            def query_by_title(self, _t):
+                raise RuntimeError("arXiv 网络请求失败")
+
+            def close(self):
+                pass
+
+        searched: list[str] = []
+
+        class FakeSearcher:
+            def search(self, query: str):
+                searched.append(query)
+                return [SearchResult(title="t", url="http://x", snippet="网页证据")]
+
+        class FakeLLM:
+            def __init__(self, *a, **kw):
+                pass
+
+            def chat_json(self, prompt):
+                return {
+                    "content": "内容",
+                    "innovations": "创新点",
+                    "arxiv_first_published": "",
+                    "final_venue": "",
+                }
+
+        class FakeStore:
+            def __init__(self, *a, **kw):
+                self.saved = None
+
+            def update(self, card):
+                self.saved = card
+                return card
+
+        monkeypatch.setattr(ai_pipeline, "ArxivClient", BrokenArxivClient)
+        monkeypatch.setattr(ai_pipeline, "create_searcher", lambda settings: FakeSearcher())
+        monkeypatch.setattr(ai_pipeline, "LLMClient", FakeLLM)
+        monkeypatch.setattr(store_mod, "CardStore", FakeStore)
+
+        card = Card(id="card_20260824_000000_abcd", title="Attention", arxiv_id="1706.03762")
+        settings = Settings()
+        # 不应抛出异常（降级继续）
+        result = ai_pipeline.run_completion(card, settings, tmp_path, lambda *a, **kw: None)
+        assert searched  # 降级后网页搜索仍执行
+        assert result["card"]["content"] == "内容"
+        assert "content" in result["filled"]
