@@ -1,14 +1,16 @@
 <div align="center">
 
-# 📄 PaperSummar
+# 📄 PaperSummar 
 
-**本地论文资料管理软件** — 以网页 GUI 管理论文资料卡，AI 联网信息补全、AI 总结、Markdown 导出，构建属于你的 **AI 学术记忆库**。
+**本地论文资料管理** — 以网页 GUI 管理论文资料卡，AI 联网信息补全、AI 总结、Markdown 导出，构建属于你的 **AI 学术记忆库**。
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
+
+本项目主要代码由**Vibe Coding**生成，完整提示词见AIM.md
 
 </div>
 
@@ -26,11 +28,10 @@
 
 - 📇 **论文资料卡管理**：新建 / 打开 / 编辑 / 保存 / 删除，每篇论文一张卡片
 - 🧩 **丰富字段**：论文题目、Arxiv ID、作者团队信息、研究方向、论文内容、创新点、代码仓库链接、首发时间、最终期刊/会议、个人感想、AI 总结
-- 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + 可切换的 Tavily / DeepSeek / DuckDuckGo），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**；同时自动检索**前三位作者的 Google Scholar 学术信息**（引用量 / 主攻方向 / 所属单位），按「人名：介绍」填入作者团队信息与研究方向，创新点按 `1.` `2.` 编号格式书写
-- ✍️ **AI 总结**：一键生成论文总结，写入「AI 总结」字段并随卡片保存
+- 🌐 **AI 联网补全**：拒绝人工搜索重复工作，按题目和Arxiv ID（可选） 联网搜索（arXiv API + 可切换的 Tavily / DeepSeek / DuckDuckGo），自动补全**未填写**的信息；同时自动检索**前三位作者的 Google Scholar 学术信息**（引用量 / 主攻方向 / 所属单位），按「人名：介绍」填入作者团队信息与研究方向，创新点按 `1.` `2.` 编号格式书写
 - 📝 **Markdown 导出**：严格按卡片内容生成 `.md` 文件，首行标注 `# 卡片ID`，方便多卡片 md 融合，配合其他skill工具直接作为 AI 学术记忆库
 - 🔍 **高效检索**：按 题目 / 作者 / 内容 检索，结果实时显示在导航栏
-- 💾 **本地存储**：所有数据保存在本地（默认 `data/` 目录），保存路径可在设置中修改，不上传任何云端
+- 💾 **本地存储**：所有数据保存在本地（默认 `data/` 目录），保存路径可在设置中修改，不上传任何云端，信息安全可控
 
 ## 🛠 技术栈
 
@@ -61,7 +62,7 @@ powershell -ExecutionPolicy Bypass -File start.ps1
 ./start.sh
 ```
 
-首次运行会自动：**探测 Python → 创建虚拟环境（`.venv`）→ 安装后端依赖 → 构建前端 → 启动服务**，并自动打开 `http://127.0.0.1:8000`。已完成的安装步骤会**自动跳过**，之后每次启动都是秒开。
+首次运行会自动：**探测 Python → 创建虚拟环境到项目路径（`.venv`）→ 安装后端依赖 → 重启运行文件，构建前端 → 启动服务**，并自动打开 `http://127.0.0.1:8000`。已完成的安装步骤会**自动跳过**，之后每次启动都是秒开。
 
 > 💡 若不想安装 Node，可下载 GitHub **Release** 包（已内置构建好的 `frontend/dist`），同样一键启动。
 
@@ -175,12 +176,6 @@ A：arXiv API 在部分网络环境下访问受限（超时）。程序会自动
 
 **Q：补全效果差，只有作者名等少量信息？**
 A：DuckDuckGo 免费但信息量有限。在「个人设置 → 联网搜索方式」选择 **Tavily** 并填 API Key（[tavily.com](https://tavily.com) 申请，有免费额度），或选择 **DeepSeek 联网搜索**（需 LLM 为 DeepSeek）。两者返回网页正文摘要，能显著提升「期刊/会议、内容、创新点」等字段的补全质量。
-
-**Q：在哪里查看详细报错？**
-A：任务失败会在右下角任务条展开错误信息，同时写入 `data/logs/tasks.log` 与 `data/logs/app.log`。
-
-**Q：我改了代码，改动怎么生效？**
-A：后端代码是热加载的 editable 安装，重启后端（关闭窗口重新运行 `start.bat`）即可；前端改动需在 `frontend/` 下执行 `npm run build` 后重启。
 
 ## 📂 数据目录结构
 
