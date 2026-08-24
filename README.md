@@ -18,11 +18,15 @@
 |:---:|:---:|
 | ![浅色界面](docs/screenshots/01_initial_light.png) | ![深色界面](docs/screenshots/02_card_dark.png) |
 
+| AI 信息补全结果展示（仅填写论文题目，AI 自动补全作者学术信息等其余字段） |
+|:---:|
+| ![AI 信息补全结果](docs/screenshots/03_ai_completion_result.png) |
+
 ## ✨ 功能
 
 - 📇 **论文资料卡管理**：新建 / 打开 / 编辑 / 保存 / 删除，每篇论文一张卡片
 - 🧩 **丰富字段**：论文题目、Arxiv ID、作者团队信息、研究方向、论文内容、创新点、代码仓库链接、首发时间、最终期刊/会议、个人感想、AI 总结
-- 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + **Tavily**，DuckDuckGo 免费兜底），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**
+- 🌐 **AI 联网补全**：按题目 / Arxiv ID 联网搜索（arXiv API + 可切换的 Tavily / DeepSeek / DuckDuckGo），自动补全**未填写**的信息 —— **已填写的部分绝不会被 AI 删除或修改**；同时自动检索**前三位作者的 Google Scholar 学术信息**（引用量 / 主攻方向 / 所属单位），按「人名：介绍」填入作者团队信息与研究方向，创新点按 `1.` `2.` 编号格式书写
 - ✍️ **AI 总结**：一键生成论文总结，写入「AI 总结」字段并随卡片保存
 - 📝 **Markdown 导出**：严格按卡片内容生成 `.md` 文件，首行标注 `# 卡片ID`，方便多卡片 md 融合，配合其他skill工具直接作为 AI 学术记忆库
 - 🔍 **高效检索**：按 题目 / 作者 / 内容 检索，结果实时显示在导航栏
@@ -106,15 +110,19 @@ python scripts/dev.py
    - **AI 信息补全**：联网搜索并补全未填字段（已填内容绝不被覆盖）
    - **AI 总结**：生成总结写入「AI 总结」字段
    - **AI 生成 md 文件**：按卡片内容导出 Markdown
-4. 左下角 **个人设置** 中配置：个人名称、API Key（OpenAI 格式）、Base URL、模型、**Tavily API Key（可选）**、数据保存路径、主题。
+4. 左下角 **个人设置** 中配置：个人名称、API Key（OpenAI 格式）、**联网搜索方式**（DuckDuckGo / Tavily / DeepSeek）、数据保存路径、主题。
 
-### 联网搜索自动优先级
+### 联网搜索方式（手动选择）
 
-AI 信息补全的网页搜索按以下优先级自动选择（无需手动指定）：
+「个人设置」中可**自由选择** AI 信息补全使用的网页搜索方式：
 
-1. **Tavily**：填了 Tavily API Key 优先使用（高质量，免费额度约 1000 次/月）
-2. **DeepSeek 内置联网搜索**：未配 Tavily，但 LLM 服务是 DeepSeek 时，自动启用 DeepSeek 的联网搜索（复用你的 DeepSeek Key，按 token 计费）
-3. **DuckDuckGo**：以上都没有时兜底（完全免费）
+| 方式 | 说明 | 要求 |
+|---|---|---|
+| **DuckDuckGo** | 完全免费，信息量有限 | 无 |
+| **Tavily** | 高质量，免费额度约 1000 次/月 | 填写 Tavily API Key |
+| **DeepSeek 联网搜索** | DeepSeek 服务端内置搜索 | LLM 服务为 DeepSeek（Base URL 含 api.deepseek.com）且已填 API Key |
+
+选择 Tavily 时需在设置中填写 **Tavily API Key**；选择 DeepSeek 时需确保 LLM 服务是 DeepSeek。若所选方式的配置不满足，AI 补全会提示先完成对应配置。
 
 ### AI 补全「绝不覆盖已填内容」的保证
 
@@ -141,7 +149,7 @@ A：按「支持的 AI 接口」一节核对：key 是否**完整复制**、Base
 A：arXiv API 在部分网络环境下访问受限（超时）。程序会自动降级为网页搜索（Tavily 或 DuckDuckGo）+ LLM 推理来补全，不影响其余字段。
 
 **Q：补全效果差，只有作者名等少量信息？**
-A：DuckDuckGo 免费但信息量有限。在「个人设置」填 **Tavily API Key**（[tavily.com](https://tavily.com) 申请，有免费额度）即可优先走 Tavily，其返回网页正文摘要；若你用的是 DeepSeek API，未配 Tavily 时会自动启用 DeepSeek 内置联网搜索。两者都能显著提升「期刊/会议、内容、创新点」等字段的补全质量。
+A：DuckDuckGo 免费但信息量有限。在「个人设置 → 联网搜索方式」选择 **Tavily** 并填 API Key（[tavily.com](https://tavily.com) 申请，有免费额度），或选择 **DeepSeek 联网搜索**（需 LLM 为 DeepSeek）。两者返回网页正文摘要，能显著提升「期刊/会议、内容、创新点」等字段的补全质量。
 
 **Q：在哪里查看详细报错？**
 A：任务失败会在右下角任务条展开错误信息，同时写入 `data/logs/tasks.log` 与 `data/logs/app.log`。

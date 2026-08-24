@@ -19,29 +19,38 @@ from app.services.websearch import (  # noqa: E402
 
 
 class TestCreateSearcher:
-    def test_tavily_when_key_configured(self) -> None:
-        s = Settings(search_api_key="tvly-test-key")
-        assert isinstance(create_searcher(s), TavilySearcher)
-
-    def test_tavily_key_takes_priority_over_deepseek(self) -> None:
-        # 填了 Tavily key，即使 LLM 是 DeepSeek 也优先用 Tavily
-        s = Settings(
-            base_url="https://api.deepseek.com/v1",
-            api_key="sk-deepseek",
-            search_api_key="tvly-test",
-        )
-        assert isinstance(create_searcher(s), TavilySearcher)
-
-    def test_deepseek_when_no_tavily_and_deepseek_llm(self) -> None:
-        s = Settings(base_url="https://api.deepseek.com/v1", api_key="sk-test")
-        assert isinstance(create_searcher(s), DeepSeekWebSearcher)
-
-    def test_deepseek_not_used_for_other_llm(self) -> None:
-        s = Settings(base_url="https://api.openai.com/v1", api_key="sk-test")
-        assert isinstance(create_searcher(s), DuckDuckGoSearcher)
-
     def test_default_is_duckduckgo(self) -> None:
         assert isinstance(create_searcher(Settings()), DuckDuckGoSearcher)
+
+    def test_duckduckgo_explicit(self) -> None:
+        s = Settings(search_provider="duckduckgo", search_api_key="tvly-test")
+        assert isinstance(create_searcher(s), DuckDuckGoSearcher)
+
+    def test_tavily_with_key(self) -> None:
+        s = Settings(search_provider="tavily", search_api_key="tvly-test-key")
+        assert isinstance(create_searcher(s), TavilySearcher)
+
+    def test_tavily_without_key_raises(self) -> None:
+        s = Settings(search_provider="tavily", search_api_key="")
+        with pytest.raises(ValueError, match="Tavily"):
+            create_searcher(s)
+
+    def test_deepseek_with_deepseek_llm(self) -> None:
+        s = Settings(
+            search_provider="deepseek",
+            base_url="https://api.deepseek.com/v1",
+            api_key="sk-test",
+        )
+        assert isinstance(create_searcher(s), DeepSeekWebSearcher)
+
+    def test_deepseek_without_deepseek_llm_raises(self) -> None:
+        s = Settings(
+            search_provider="deepseek",
+            base_url="https://api.openai.com/v1",
+            api_key="sk-test",
+        )
+        with pytest.raises(ValueError, match="DeepSeek"):
+            create_searcher(s)
 
 
 class TestAnthropicEndpoint:

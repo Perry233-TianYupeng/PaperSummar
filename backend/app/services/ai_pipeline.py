@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import copy
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -25,7 +26,51 @@ _logger = get_logger()
 
 Progress = Callable[[float | None, str | None, str | None], None]
 
-COMPLETION_KEYS = ["arxiv_first_published", "final_venue", "content", "innovations"]
+COMPLETION_KEYS = [
+    "author_team_info",
+    "research_directions",
+    "arxiv_first_published",
+    "final_venue",
+    "content",
+    "innovations",
+]
+
+
+def _first_authors(authors_str: str, n: int = 3) -> list[str]:
+    """从作者字符串中提取前 n 位作者名（支持中英文逗号/分号/顿号/and 分隔）。"""
+    if not authors_str:
+        return []
+    parts = re.split(r"[,，;；、&]+|\s+and\s+", authors_str)
+    names = [p.strip() for p in parts if p.strip()]
+    return names[:n]
+
+
+def _search_authors(searcher, authors: list[str], max_queries: int = 3) -> str:
+    """搜索前几位作者的 Google Scholar 学术信息（引用量 / 主攻方向 / 所属单位）。"""
+    blocks: list[str] = []
+    for name in authors[:max_queries]:
+        query = f'"{name}" Google Scholar 引用量 研究方向 所属单位'
+        results = searcher.search(query)
+        snippet = snippets_to_text(results, limit=3)
+        if snippet:
+            blocks.append(f"### {name}\n{snippet}")
+    return "\n\n".join(blocks)
+
+
+def _format_numbered_list(text: str | None) -> str:
+    """把文本规范为逐行编号格式（1. xxx / 2. xxx），供创新点等字段使用。"""
+    if not text:
+        return ""
+    lines = [ln.strip().lstrip("-•*· ") for ln in text.splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    out: list[str] = []
+    for i, line in enumerate(lines, 1):
+        if re.match(r"^\d+[\.、)]", line):
+            out.append(line)
+        else:
+            out.append(f"{i}. {line}")
+    return "\n".join(out)
 
 
 def is_blank(value: Any) -> bool:
@@ -92,12 +137,21 @@ def run_completion(
         query_parts.append(card.arxiv_id)
     query_parts.append("paper journal conference published year")
     web_text = snippets_to_text(searcher.search(" ".join(query_parts)))
+
+    # 作者学术信息：提取前三位作者，分别搜索其 Google Scholar 信息（引用量/研究方向/单位）
+    author_context = ""
+    if card.is_blank("author_team_info") or card.is_blank("research_directions"):
+        author_source = (arxiv.authors if arxiv else "") or card.authors
+        authors = _first_authors(author_source)
+        if authors:
+            progress(0.5, "web", f"搜索 {len(authors[:3])} 位作者的学术信息 ...")
+            author_context = _search_authors(searcher, authors)
     progress(0.6, "web", "网页证据收集完成")
 
     # ---- [3] LLM 结构化输出 ----
     progress(0.65, "llm", "LLM 提取与总结 ...")
     llm = LLMClient(settings.api_key, settings.base_url, settings.model)
-    prompt = _build_completion_prompt(card, arxiv, web_text)
+    prompt = _build_completion_prompt(card, arxiv, web_text, author_context)
     llm_result = llm.chat_json(prompt)
     progress(0.9, "llm", "LLM 结果解析完成")
 
@@ -105,11 +159,13 @@ def run_completion(
     progress(0.92, "merge", "严格合并（绝不覆盖已填内容）...")
     ai_values: dict[str, Any] = {
         "authors": (arxiv.authors if arxiv else ""),
+        "author_team_info": llm_result.get("author_team_info"),
+        "research_directions": llm_result.get("research_directions"),
         "arxiv_first_published": llm_result.get("arxiv_first_published")
         or (arxiv.published if arxiv else ""),
         "final_venue": llm_result.get("final_venue") or (arxiv.journal_ref if arxiv else ""),
         "content": llm_result.get("content"),
-        "innovations": llm_result.get("innovations"),
+        "innovations": _format_numbered_list(llm_result.get("innovations")),
         "code_repo": llm_result.get("code_repo")
         or extract_repo_urls((arxiv.summary if arxiv else ""), web_text),
     }
@@ -171,8 +227,8 @@ def _extract_summary(llm: LLMClient, prompt: str) -> str:
         return ""
 
 
-def _build_completion_prompt(card: Card, arxiv, web_text: str) -> str:
-    """构造补全 prompt：要求仅输出 4 个键的 JSON。"""
+def _build_completion_prompt(card: Card, arxiv, web_text: str, author_context: str = "") -> str:
+    """构造补全 prompt：要求仅输出 6 个键的 JSON。"""
     known_fields = [
         "title",
         "arxiv_id",
@@ -194,11 +250,19 @@ def _build_completion_prompt(card: Card, arxiv, web_text: str) -> str:
         else "\narXiv 无结果。"
     )
 
-    return f"""请根据以下资料，补全这篇论文的信息，仅输出 JSON，含且仅含以下 4 个键：
+    return f"""请根据以下资料，补全这篇论文的信息，仅输出 JSON，含且仅含以下 6 个键：
 - arxiv_first_published：论文在 arXiv 的首发时间（年月日，未查到可留空）
 - final_venue：最终发表的期刊或会议名称（不确定时注明"推测"；查不到可留空）
 - content：论文内容摘要（200-300 字，介绍问题、方法、结果）
-- innovations：论文创新点（分点，每点一句话，共 2-4 点）
+- innovations：论文创新点。必须按编号逐行书写，每行一条，格式：
+  1. 创新点一
+  2. 创新点二
+  3. 创新点三
+  （共 2-4 条，用换行分隔，不要用其它符号开头）
+- author_team_info：作者团队信息。综合「作者学术信息」资料，为前几位作者各写一行简介，
+  格式「人名：介绍」，介绍包含引用量、所属单位或组织等；每位作者一行，用换行分隔
+- research_directions：主要作者研究方向。为前几位作者各写一行主攻方向，
+  格式「人名：主攻方向」；每位作者一行，用换行分隔
 
 论文题目：{card.title}
 arXiv ID：{card.arxiv_id or '(未填写)'}
@@ -206,5 +270,7 @@ arXiv ID：{card.arxiv_id or '(未填写)'}
 {arxiv_section}
 网页检索证据：
 {web_text[:3000] if web_text else '(无)'}
+作者学术信息（Google Scholar 等）：
+{author_context[:4000] if author_context else '(无)'}
 
 请以 JSON 输出，不要输出其它内容。"""

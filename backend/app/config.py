@@ -82,6 +82,7 @@ class SettingsManager:
             "model": settings.model,
             "theme": settings.theme,
             "data_dir": stored or DEFAULT_DATA_DIR_NAME,
+            "search_provider": settings.search_provider,
             "search_api_key": mask_api_key(settings.search_api_key),
         }
 

@@ -86,6 +86,49 @@ export function SettingsModal() {
             />
           </label>
 
+          <div className="form-label">
+            联网搜索方式
+            <div className="theme-options">
+              <button
+                className={`theme-option ${form.search_provider === 'duckduckgo' ? 'active' : ''}`}
+                onClick={() => update('search_provider', 'duckduckgo')}
+              >
+                DuckDuckGo（免费）
+              </button>
+              <button
+                className={`theme-option ${form.search_provider === 'tavily' ? 'active' : ''}`}
+                onClick={() => update('search_provider', 'tavily')}
+              >
+                Tavily（高质量）
+              </button>
+              <button
+                className={`theme-option ${form.search_provider === 'deepseek' ? 'active' : ''}`}
+                onClick={() => update('search_provider', 'deepseek')}
+              >
+                DeepSeek 联网搜索
+              </button>
+            </div>
+            <span className="form-hint">
+              选择 AI 信息补全用的网页搜索方式。DuckDuckGo 完全免费但信息有限；Tavily 需填下方
+              API Key（免费额度约 1000 次/月）；DeepSeek 联网搜索需 LLM 服务为 DeepSeek（按
+              token 计费）。
+            </span>
+          </div>
+
+          {form.search_provider === 'tavily' && (
+            <label className="form-label">
+              Tavily API Key（选择 Tavily 搜索时使用）
+              <input
+                className="form-input"
+                type="password"
+                value={searchKeyInput}
+                placeholder={form.search_api_key ? `已配置：${form.search_api_key}` : 'tvly-...'}
+                onChange={(e) => setSearchKeyInput(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+          )}
+
           <label className="form-label">
             Base URL（OpenAI 兼容接口地址）
             <input
@@ -104,23 +147,6 @@ export function SettingsModal() {
               onChange={(e) => update('model', e.target.value)}
               placeholder="gpt-4o-mini"
             />
-          </label>
-
-          <label className="form-label">
-            Tavily API Key（可选，AI 联网补全用）
-            <input
-              className="form-input"
-              type="password"
-              value={searchKeyInput}
-              placeholder={form.search_api_key ? `已配置：${form.search_api_key}` : 'tvly-...（留空则不使用）'}
-              onChange={(e) => setSearchKeyInput(e.target.value)}
-              autoComplete="off"
-            />
-            <span className="form-hint">
-              联网搜索自动优先级：① 填了 Tavily key 优先用 Tavily（免费额度约 1000 次/月）；②
-              否则若 LLM 服务是 DeepSeek，自动启用 DeepSeek 内置联网搜索（消耗 DeepSeek
-              token 余额）；③ 都没有则用 DuckDuckGo（免费）。
-            </span>
           </label>
 
           <label className="form-label">

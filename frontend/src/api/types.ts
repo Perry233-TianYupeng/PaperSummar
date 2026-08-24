@@ -32,6 +32,7 @@ export interface Settings {
   model: string
   theme: 'light' | 'dark'
   data_dir: string
+  search_provider: 'duckduckgo' | 'tavily' | 'deepseek'
   search_api_key: string // Tavily key（可选），返回时是掩码
 }
 

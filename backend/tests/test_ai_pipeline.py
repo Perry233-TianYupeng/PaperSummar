@@ -6,8 +6,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from app.models import Card  # noqa: E402
-from app.services.ai_pipeline import is_blank, strict_merge  # noqa: E402
+from app.models import Card, Settings  # noqa: E402
+from app.services.ai_pipeline import (  # noqa: E402
+    _first_authors,
+    _format_numbered_list,
+    is_blank,
+    strict_merge,
+)
 
 
 def make_card(**overrides) -> Card:
@@ -73,12 +78,55 @@ class TestStrictMerge:
             "content": "C",
             "innovations": "I",
             "arxiv_first_published": "2023-01-01",
+            "author_team_info": "团队信息",
+            "research_directions": "研究方向",
         }
         updated, filled, skipped = strict_merge(card, ai)
         # filled/skipped 顺序遵循 AI_MERGEABLE_FIELDS 定义顺序
-        assert filled == ["arxiv_first_published", "content", "innovations"]
+        assert filled == [
+            "author_team_info",
+            "research_directions",
+            "arxiv_first_published",
+            "content",
+            "innovations",
+        ]
         assert skipped == ["authors", "final_venue", "code_repo"]
         assert updated.authors == "已有作者"  # 已填不被覆盖
+        assert updated.author_team_info == "团队信息"
+        assert updated.research_directions == "研究方向"
+
+
+class TestFirstAuthors:
+    def test_comma_separated(self) -> None:
+        assert _first_authors("Alice, Bob, Carol, Dave", n=3) == ["Alice", "Bob", "Carol"]
+
+    def test_chinese_separators(self) -> None:
+        assert _first_authors("张三、李四、王五", n=3) == ["张三", "李四", "王五"]
+
+    def test_empty(self) -> None:
+        assert _first_authors("") == []
+        assert _first_authors("   ") == []
+
+    def test_limit(self) -> None:
+        assert _first_authors("A and B and C and D", n=2) == ["A", "B"]
+
+
+class TestFormatNumberedList:
+    def test_adds_numbers_to_plain_lines(self) -> None:
+        out = _format_numbered_list("创新点一\n创新点二")
+        assert out == "1. 创新点一\n2. 创新点二"
+
+    def test_keeps_existing_numbers(self) -> None:
+        out = _format_numbered_list("1. 已有\n3. 保持")
+        assert out == "1. 已有\n3. 保持"
+
+    def test_strips_bullets(self) -> None:
+        out = _format_numbered_list("- 一\n• 二")
+        assert out == "1. 一\n2. 二"
+
+    def test_empty(self) -> None:
+        assert _format_numbered_list("") == ""
+        assert _format_numbered_list("   ") == ""
 
 
 class TestIsBlank:
@@ -89,3 +137,110 @@ class TestIsBlank:
         assert not is_blank("文本")
         assert not is_blank(0)
         assert not is_blank(False)
+
+
+class TestRunCompletionIntegration:
+    """端到端验证 run_completion：作者信息填充 + 创新点编号格式 + 已填字段保护。"""
+
+    def test_fills_author_info_and_formats_innovations(self, tmp_path, monkeypatch) -> None:
+        import app.store as store_mod
+        from app.services import ai_pipeline
+        from app.services.websearch import SearchResult
+
+        # --- 假 arXiv：提供三位作者 ---
+        class FakeArxiv:
+            authors = "张三, 李四, 王五"
+            published = "2017-06-12"
+            journal_ref = "NeurIPS 2017"
+            summary = "摘要内容"
+            title = "Attention Is All You Need"
+            arxiv_id = "1706.03762"
+
+            def to_llm_context(self):
+                return {
+                    "title": self.title, "authors": self.authors,
+                    "published": self.published, "journal_ref": self.journal_ref,
+                    "abstract": self.summary,
+                }
+
+        class FakeArxivClient:
+            def __init__(self, *a, **kw):
+                pass
+
+            def query_by_id(self, _id):
+                return FakeArxiv()
+
+            def query_by_title(self, _t):
+                return None
+
+            def close(self):
+                pass
+
+        # --- 假搜索：记录被搜索的作者名，并返回该作者的学术信息片段 ---
+        searched_queries: list[str] = []
+
+        class FakeSearcher:
+            def search(self, query: str):
+                searched_queries.append(query)
+                return [
+                    SearchResult(
+                        title="Google Scholar",
+                        url="http://x",
+                        snippet="张三：引用量 50000，主攻自然语言处理，单位某大学",
+                    )
+                ]
+
+        # --- 假 LLM：校验 prompt 含作者信息，返回 6 键 ---
+        class FakeLLM:
+            def __init__(self, *a, **kw):
+                pass
+
+            def chat_json(self, prompt):
+                assert "张三" in prompt  # 作者学术信息已传入 prompt
+                assert "author_team_info" in prompt
+                assert "research_directions" in prompt
+                assert "innovations" in prompt
+                return {
+                    "arxiv_first_published": "2017-06-12",
+                    "final_venue": "NeurIPS 2017",
+                    "content": "提出 Transformer 架构",
+                    "innovations": "创新一\n创新二",  # 无编号，应被格式化
+                    "author_team_info": "张三：引用量高，单位某大学\n李四：主攻机器学习",
+                    "research_directions": "张三：自然语言处理\n李四：机器学习",
+                }
+
+        # --- 假存储：捕获写入的卡片 ---
+        class FakeStore:
+            def __init__(self, *a, **kw):
+                self.saved = None
+
+            def update(self, card):
+                self.saved = card
+                return card
+
+        monkeypatch.setattr(ai_pipeline, "ArxivClient", FakeArxivClient)
+        monkeypatch.setattr(ai_pipeline, "create_searcher", lambda settings: FakeSearcher())
+        monkeypatch.setattr(ai_pipeline, "LLMClient", FakeLLM)
+        monkeypatch.setattr(store_mod, "CardStore", FakeStore)
+
+        card = Card(
+            id="card_20260824_000000_abcd",
+            title="Attention Is All You Need",
+            arxiv_id="1706.03762",  # 命中 arXiv，提供三位作者
+        )
+        settings = Settings()
+        result = ai_pipeline.run_completion(card, settings, tmp_path, lambda *a, **kw: None)
+
+        # 前三位作者都被搜索了
+        assert any("张三" in q for q in searched_queries)
+        assert any("李四" in q for q in searched_queries)
+        assert any("王五" in q for q in searched_queries)
+
+        saved = result["card"]
+        assert saved["author_team_info"].startswith("张三：")
+        assert saved["research_directions"].startswith("张三：")
+        assert saved["innovations"] == "1. 创新一\n2. 创新二"  # 编号格式
+        # filled 记录
+        assert "author_team_info" in result["filled"]
+        assert "research_directions" in result["filled"]
+        assert "innovations" in result["filled"]

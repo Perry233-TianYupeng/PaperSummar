@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict
 # 资料卡中可由 AI 补全填充的字段（个人感想 personal_notes 永不参与）
 AI_MERGEABLE_FIELDS: list[str] = [
     "authors",
+    "author_team_info",
+    "research_directions",
     "arxiv_first_published",
     "final_venue",
     "content",
@@ -89,7 +91,8 @@ class Settings(BaseModel):
     model: str = "gpt-4o-mini"
     theme: Literal["light", "dark"] = "light"
     data_dir: str = ""
-    search_api_key: str = ""  # Tavily 搜索 key（可选）；填了则 AI 补全优先用 Tavily
+    search_provider: Literal["duckduckgo", "tavily", "deepseek"] = "duckduckgo"
+    search_api_key: str = ""  # Tavily 搜索 key（仅当 search_provider=tavily 时使用）
 
     def has_api_key(self) -> bool:
         return bool(self.api_key and self.api_key.strip())
@@ -104,6 +107,7 @@ class SettingsPublic(BaseModel):
     model: str
     theme: str
     data_dir: str
+    search_provider: str
     search_api_key: str
 
 

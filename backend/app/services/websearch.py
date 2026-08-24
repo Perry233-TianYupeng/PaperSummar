@@ -201,15 +201,23 @@ def _anthropic_endpoint(base_url: str) -> str:
 
 
 def create_searcher(settings) -> DuckDuckGoSearcher | TavilySearcher | DeepSeekWebSearcher:
-    """三级自动优先级的搜索器：
+    """按用户选择的搜索方式创建搜索器。
 
-    1. 配置了 Tavily key → Tavily（高质量，免费额度约 1000 次/月）
-    2. 未配置，但 LLM 服务是 DeepSeek → DeepSeek 内置联网搜索（复用 DeepSeek key，按 token 计费）
-    3. 兜底 → DuckDuckGo（完全免费）
+    - duckduckgo：完全免费兜底
+    - tavily：需配置 Tavily API Key（免费额度约 1000 次/月）
+    - deepseek：需 LLM 服务为 DeepSeek 且配置了 API Key（按 token 计费）
+    配置不满足时抛出 ValueError，由上层给出友好提示。
     """
-    if settings.search_api_key.strip():
+    if settings.search_provider == "tavily":
+        if not settings.search_api_key.strip():
+            raise ValueError("已选择 Tavily 搜索，但尚未配置 Tavily API Key，请到「个人设置」填写")
         return TavilySearcher(settings.search_api_key)
-    if is_deepseek_base_url(settings.base_url) and settings.api_key.strip():
+    if settings.search_provider == "deepseek":
+        if not is_deepseek_base_url(settings.base_url) or not settings.api_key.strip():
+            raise ValueError(
+                "已选择 DeepSeek 联网搜索，但 LLM 服务不是 DeepSeek 或未配置 API Key，"
+                "请到「个人设置」将 Base URL 设为 api.deepseek.com 并填写 API Key"
+            )
         return DeepSeekWebSearcher(settings.api_key, settings.model, settings.base_url)
     return DuckDuckGoSearcher()
 

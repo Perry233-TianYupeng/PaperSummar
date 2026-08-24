@@ -112,7 +112,11 @@ def create_app(app_root: Path = APP_ROOT) -> FastAPI:
 
         @app.get("/")
         def index() -> FileResponse:
-            return FileResponse(DIST_DIR / "index.html")
+            # no-store：避免浏览器缓存 index.html，保证前端构建更新后立即生效
+            return FileResponse(
+                DIST_DIR / "index.html",
+                headers={"Cache-Control": "no-store"},
+            )
 
         @app.get("/favicon.svg")
         def favicon() -> FileResponse:
@@ -124,7 +128,10 @@ def create_app(app_root: Path = APP_ROOT) -> FastAPI:
             candidate = DIST_DIR / path
             if candidate.is_file():
                 return FileResponse(candidate)
-            return FileResponse(DIST_DIR / "index.html")
+            return FileResponse(
+                DIST_DIR / "index.html",
+                headers={"Cache-Control": "no-store"},
+            )
 
     return app
 
