@@ -82,7 +82,7 @@ powershell -ExecutionPolicy Bypass -File start.ps1
 # 1. 后端
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
-pip install -e .
+pip install -e .          # 或：pip install -r requirements.txt
 
 # 2. 前端
 cd frontend
@@ -93,6 +93,31 @@ cd ..
 # 3. 启动
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --app-dir backend
 ```
+
+### Python 依赖
+
+项目后端依赖以下 Python 库（见 [`requirements.txt`](requirements.txt)，与 `pyproject.toml` 保持一致）：
+
+| 库 | 用途 |
+|---|---|
+| **FastAPI** | Web 框架 |
+| **Uvicorn** | ASGI 服务器 |
+| **Pydantic** | 数据模型与校验 |
+| **httpx** | 网络请求（arXiv / Tavily / DeepSeek 搜索） |
+| **ddgs** | DuckDuckGo 网页搜索 |
+| **openai** | OpenAI 兼容 LLM 客户端 |
+
+安装方式：
+
+```bash
+# 仅运行时依赖
+pip install -r requirements.txt
+
+# 含开发 / 测试依赖（pytest / ruff / mypy 等，见 requirements-dev.txt）
+pip install -r requirements-dev.txt
+```
+
+> 一键启动脚本与 `pyproject.toml`（`pip install -e .`）会自动安装上述依赖；`requirements.txt` 是给希望手动管理环境的用户提供的便捷清单。
 
 ### 开发模式（前后端热更新）
 

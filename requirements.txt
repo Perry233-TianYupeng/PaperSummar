@@ -1,0 +1,10 @@
+# PaperSummar 运行时依赖
+# 说明：本清单与 pyproject.toml 的 [project.dependencies] 保持一致。
+#      项目默认通过 `pip install -e .`（或一键启动脚本）安装；
+#      requirements.txt 提供便捷的 `pip install -r requirements.txt` 方式。
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.7.0
+httpx>=0.27.0
+ddgs>=9.0.0
+openai>=1.40.0
